@@ -1,8 +1,8 @@
 MEMORY {
-	ram(wrx)	:ORIGIN = 0x801FC100, LENGTH = 0x1F00
+	ram(wrx)	:ORIGIN = 0x801FA100, LENGTH = 0x3F00
 }
 SECTIONS {
-	. = 0x801FC100;
+	. = 0x801FA100;
 	PROVIDE(__ROM_START__ = .);
 	.text :
 	{

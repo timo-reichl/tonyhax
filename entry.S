@@ -4,7 +4,7 @@
 .text
 .globl __start
 
-LOAD_ADDR = 0x801FC000
+LOAD_ADDR = 0x801FA000
 
 # s0 = A table address
 # s1 = file descriptor
@@ -79,11 +79,11 @@ realstart:
 	li t1, 0x02
 	move a0, s1
 	li a1, LOAD_ADDR
-	li a2, 0x2000
+	li a2, 0x4000
 	jalr s0
 
 	# Die if failed
-	bne v0, 0x2000, fail
+	bne v0, 0x4000, fail
 
 	# Close file
 	li t1, 0x04

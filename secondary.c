@@ -18,7 +18,7 @@ const uint32_t tty_enabled = 0;
 extern uint8_t __ROM_START__, __ROM_END__;
 
 // Buffer right before this executable
-uint8_t * const data_buffer = (uint8_t *) 0x801FB800;
+uint8_t * const data_buffer = (uint8_t *) 0x801F9800;
 
 // Kernel developer
 const char * const KERNEL_AUTHOR = (const char *) 0xBFC0012C;
@@ -144,7 +144,7 @@ bool backdoor_cmd(uint_fast8_t cmd, const char * string) {
 	return true;
 }
 
-bool unlock_drive() {
+const char * get_drive_region_string() {
 	uint8_t cd_reply[16];
 
 	// Run "GetRegion" test
@@ -179,11 +179,14 @@ bool unlock_drive() {
 	} else {
 		// +4 to skip past "for "
 		debug_write("Unsup. region: %s", (char *) (cd_reply + 4));
-		return false;
+		return NULL;
 	}
 
 	debug_write("Drive region: %s", region_name);
+	return p5_localized;
+}
 
+bool unlock_drive(const char * p5_localized) {
 	// Note the kernel's implementation of strlen returns 0 for nulls.
 	if (
 			!backdoor_cmd(0x50, NULL) ||
@@ -220,13 +223,6 @@ void wait_lid_status(bool open) {
 }
 
 void try_boot_cd() {
-	debug_write("Swap CD now");
-	wait_lid_status(true);
-	wait_lid_status(false);
-
-	debug_write("Initializing CD");
-	CdInit();
-
 	// Defaults if no SYSTEM.CNF file exists
 	uint32_t tcb = 4;
 	uint32_t event = 16;
@@ -314,16 +310,33 @@ void main() {
 
 	log_bios_version();
 
-	debug_write("Unlocking CD drive");
-
-	if (!unlock_drive()) {
+	const char * p5_localized = get_drive_region_string();
+	if (p5_localized == NULL) {
 		return;
 	}
 
 	debug_write("Unlocked successfully!");
 
 	while (1) {
+		debug_write("Swap CD now");
+		wait_lid_status(true);
+		wait_lid_status(false);
+
+		// Issue a explicit drive reset command
+		cd_reset();
+
+		debug_write("Unlocking drive");
+		if (!unlock_drive(p5_localized)) {
+			return;
+		}
+
+		debug_write("Initializing CD");
+		CdInit();
+
 		try_boot_cd();
+
+		debug_write("Reinitializing kernel");
+		reinit_kernel();
 	}
 }
 
