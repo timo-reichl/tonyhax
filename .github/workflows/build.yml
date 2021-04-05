@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - '*'
+  pull_request:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    container:
+      image: docker://ubuntu:20.04
+    steps:
+    - uses: actions/checkout@v2
+    - name: prepare
+      run: |
+        export DEBIAN_FRONTEND=noninteractive
+        apt-get update
+        apt-get -y upgrade
+        apt-get -y install build-essential binutils-mips-linux-gnu g++-mips-linux-gnu zip
+    - name: build
+      run: |
+        make
+        mkdir build
+        export RELEASE_NAME=$(ls | grep .zip)
+        mv $RELEASE_NAME build/
+        make clean
+        cd build
+        unzip $RELEASE_NAME
+        rm $RELEASE_NAME
+    - name: artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: $RELEASE_NAME
+        path: ./build/*
